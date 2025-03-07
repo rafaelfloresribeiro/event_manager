@@ -2,6 +2,7 @@
 require 'csv'
 require 'google/apis/civicinfo_v2'
 require 'erb'
+require 'date'
 
 
 
@@ -45,6 +46,12 @@ def clean_phone_numbers(number)
   end
 end
 
+def capture_dates(dates)
+  dates.each do |row|
+    registration_time = row[:regdate]
+  end
+end
+
 puts 'EventManager initialized.'
 
 contents = CSV.open(
@@ -53,18 +60,36 @@ contents = CSV.open(
   header_converters: :symbol
 )
 
-template_letter = File.read('../form_letter.erb')
-erb_template = ERB.new template_letter
-
-contents.each do |row|
-  id = row[0]
-  name = row[:first_name]
-  zipcode = clean_zipcode(row[:zipcode])
-  legislators = legislators_by_zipcode(zipcode)
-  phone = clean_phone_numbers(row[:homephone])
-  p phone
-
-  #form_letter = erb_template.result(binding)
-
-  #save_thank_you_letter(id, form_letter)
+def clean_hours(hours)
+  Time.parse(hours)
+rescue ArgumentError
+  '00:00'
 end
+
+def peak_hours_calc
+  contents = CSV.open(
+    'event_attendees.csv',
+    headers: true,
+    header_converters: :symbol
+  )
+  hours_obj = contents.map { |row| row[:regdate] }
+  hours_obj.map! { |hour| Time.strptime(hour, '%m/%d/%y %H:%M') }
+  hours_obj.map! { |hour| hour.strftime('%k'.strip)}.tally
+end
+
+p peak_hours_calc
+ 
+# template_letter = File.read('../form_letter.erb')
+# erb_template = ERB.new template_letter
+
+# contents.each do |row|
+  # id = row[0]
+  # name = row[:first_name]
+  # zipcode = clean_zipcode(row[:zipcode])
+  # legislators = legislators_by_zipcode(zipcode)
+  # clean_hours = clean_hours((row[:regdate]))
+  # phone = clean_phone_numbers(row[:homephone])
+  # p clean_hours
+  # form_letter = erb_template.result(binding)
+  # save_thank_you_letter(id, form_letter)
+# end
